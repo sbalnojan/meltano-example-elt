@@ -11,6 +11,8 @@ export AWS_DEFAULT_REGION=us-east-1
 aws s3api create-bucket --bucket test --endpoint-url http://moto:5000
 
 aws s3api put-object --bucket test --key raw_customers.csv --body ../csvs/raw_customers.csv --endpoint-url http://moto:5000
+aws s3api put-object --bucket test --key raw_orders.csv --body ../csvs/raw_orders.csv --endpoint-url http://moto:5000
+aws s3api put-object --bucket test --key raw_payments.csv --body ../csvs/raw_payments.csv --endpoint-url http://moto:5000
 
 # this is how you would retrieve it again...
 # aws s3api get-object --bucket test --key raw_customers.csv test.csv --endpoint-url http://moto:5000
