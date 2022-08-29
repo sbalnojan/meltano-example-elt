@@ -1,8 +1,11 @@
 
 ![EL Meltano Diagram](el_meltano_diagram.jpg)
 
-# Meltano Example Projects: Extract & Load (EL) (Jaffle Shop) Sandbox
-This project extends the ```jaffle shop``` sandbox project created by [DbtLabs](https://github.com/dbt-labs/jaffle_shop) for the data built tool ```dbt```. This meltano project sources one CSV file from AWS S3 and puts them into one table inside a Postgres database.
+# Meltano Example Projects: Extract, Load & Transform (ELT) Sandbox
+This project extends the ```jaffle shop``` sandbox project created by [DbtLabs](https://github.com/dbt-labs/jaffle_shop) for the data built tool ```dbt``` using Meltano. This meltano project
+1. sources three csv files from an AWS S3 bucket, 
+2. loads them into a PostgreSQL database,
+3. then runs the Jaffle Shop dbt project over it to create additional staging and final models (inside the PostgreSQL database)
 
 ![EL Meltano Run](Meltano_EL.gif)
 
@@ -18,10 +21,12 @@ This repo is not a tutorial or an extensive walk-through. It contains some bad p
 We're focusing on simplicity here!
 
 ## What's in this repo?
-This repo contains an ```AWS S3``` mock with one CSV file inside. The raw customer data.
+This repo contains an ```AWS S3``` mock with three CSV files inside. The raw customer, order & payments data.
 
-The meltano project extracts this CSV using the tap-s3-csv ```extractor```, and loads them into the ```PostgreSQL``` database using
-the loader ```target-postgres```.
+The Meltano project extracts these CSVs using the ```tap-s3-csv``` extractor, and loads them into the ```PostgreSQL``` database using the loader ```target-postgres```.
+
+Then the ```dbt-postgres``` transformer is used to run the Jaffle Shop transformations over the raw data.
+
 
 ![EL Meltano Diagram](el_meltano_diagram.jpg)
 
@@ -46,7 +51,7 @@ Batect automatically tears down & cleans up after the task finishes.
 2. Launch meltano with batect via ```./batect melt```.
 2.1. Alternatively you can use your local meltano, installed with ```pip install meltano```. (The mocks will still work.)
 
-3. Run ```meltano install``` to install the two plugins, the S3 extractor and the PostgreSQL loader as specified in the [meltano.yml](new_project/meltano.yml).
+3. Run ```meltano install``` to install the three plugins, the S3 extractor, PostgreSQL loader and the dbt-postgres transformer as specified in the [meltano.yml](new_project/meltano.yml).
 
 Here is an extract from the [meltano.yml](new_project/meltano.yml):
 
@@ -60,11 +65,21 @@ plugins:
     config:
       bucket: test
       tables:
-        - search_prefix: ""
-          search_pattern: "raw_customers.csv"
-          table_name: "raw_customers"
-          key_properties: ["id"]
-          delimiter: ","
+      - search_prefix: ''
+        search_pattern: raw_customers.csv
+        table_name: raw_customers
+        key_properties: [id]
+        delimiter: ','
+      - search_prefix: ''
+        search_pattern: raw_orders.csv
+        table_name: raw_orders
+        key_properties: [id]
+        delimiter: ','
+      - search_prefix: ''
+        search_pattern: raw_payments.csv
+        table_name: raw_payments
+        key_properties: [id]
+        delimiter: ','
       start_date: 2000-01-01T00:00:00Z
       aws_endpoint_url: http://host.docker.internal:5005
       aws_access_key_id: s
@@ -83,7 +98,7 @@ plugins:
       dbname: demo
 ```
 
-4. Finally, run ```meltano run tap-s3-csv target-postgres``` to execute the extraction and loading. 
+4. Run ```meltano run tap-s3-csv target-postgres``` to execute the extraction and loading. 
 
 5. Check inside the local database afterwards to see that your data has arrived, use the connection data below.
 
@@ -96,3 +111,24 @@ plugins:
       dbname: demo
 ```
 
+6. Finally, run ```meltano run dbt-postgres:run``` to execute the dbt project inside the Meltano project. Check again in the database, and below you can see the dbt configuration part of the [meltano.yml](new_project/meltano.yml): 
+
+```yaml
+
+ 
+  transformers:
+  - name: dbt-postgres
+    variant: dbt-labs
+    pip_url: dbt-core~=1.1.0 dbt-postgres~=1.1.0
+    config:
+      host: host.docker.internal
+      user: admin
+      password: password
+      port: 5432
+      dbname: demo
+      schema: analytics
+      source_schema: tap_s3_csv
+
+```
+
+7. _Optional: If you fancy, you can combine the above two attributes and see that you get the same result by running ```meltano run tap-s3-csv target-postgres dbt-postgres:run```._
