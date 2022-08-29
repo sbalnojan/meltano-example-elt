@@ -7,7 +7,7 @@ This project extends the ```jaffle shop``` sandbox project created by [DbtLabs](
 2. loads them into a PostgreSQL database,
 3. then runs the Jaffle Shop dbt project over it to create additional staging and final models (inside the PostgreSQL database)
 
-![EL Meltano Run](Meltano_EL.gif)
+![EL Meltano Run](Meltano_elt.gif)
 
 ## What is this repo?
 _What this repo is:_
